@@ -139,7 +139,8 @@ Responsibilities:
 
 ## 5. High-Level Architecture Diagram
 
-[Architecture diagram will be added here]
+    [Architecture Diagram](../infrastructure/this-or-that-architecture.png)
+
 
 ---
 
