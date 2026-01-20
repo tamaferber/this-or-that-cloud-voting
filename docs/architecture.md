@@ -42,18 +42,98 @@ The system is designed according to the following architectural principles:
 
 ## 4. Logical Components
 
-The system is composed of the following logical components:
+The system is decomposed into several logical services, each responsible for a single, well-defined task. This separation follows the microservices principle and allows independent scaling, development, and security isolation of each component.
 
-- User Interface Service
-- Admin Interface Service
-- Poll Management Service
-- Vote Processing Service
-- Results Query Service
-- Workflow Orchestration Component
-- Data Storage Component
-- Monitoring and Logging Component
+### 4.1 User Interface Service
+Responsible for serving the public voting interface.  
+This component displays the currently active poll and allows the user to submit a vote.
 
-Each component is designed to have a single, well-defined responsibility.
+Responsibilities:
+- Display the active "This or That" poll
+- Submit user vote requests to the backend
+
+---
+
+### 4.2 Admin Interface Service
+Responsible for serving the administrative dashboard.
+
+Responsibilities:
+- Display real-time voting results as a graph
+- Provide an interface for creating new polls
+- Allow administrators to monitor system state
+
+---
+
+### 4.3 Poll Management Service
+Responsible for managing poll definitions.
+
+Responsibilities:
+- Create new polls
+- Store poll questions and options
+- Mark a poll as active
+- Retrieve the currently active poll
+
+---
+
+### 4.4 Vote Intake Service
+Responsible for receiving and validating vote requests from users.
+
+Responsibilities:
+- Receive vote submissions
+- Validate input data
+- Perform basic request validation and filtering
+- Forward valid votes to the processing workflow
+
+---
+
+### 4.5 Vote Processing Service
+Responsible for processing accepted votes.
+
+Responsibilities:
+- Persist the vote
+- Update aggregated counters
+- Ensure data consistency
+
+---
+
+### 4.6 Results Query Service
+Responsible for providing read-only access to aggregated results.
+
+Responsibilities:
+- Retrieve current voting results
+- Provide data to the admin dashboard
+- Provide data in a format suitable for visualization
+
+---
+
+### 4.7 Workflow Orchestration Component
+Responsible for orchestrating the voting process.
+
+Responsibilities:
+- Coordinate multi-step vote processing
+- Ensure each step in the workflow is executed in the correct order
+- Handle failures and retries between steps
+
+---
+
+### 4.8 Data Storage Component
+Responsible for persistent storage.
+
+Responsibilities:
+- Store polls
+- Store votes or aggregated counters
+- Provide reliable and durable data storage
+
+---
+
+### 4.9 Monitoring and Logging Component
+Responsible for observability of the system.
+
+Responsibilities:
+- Collect logs from all components
+- Provide basic metrics (number of votes, errors, latency)
+- Enable debugging and system monitoring
+
 
 ---
 
