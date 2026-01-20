@@ -244,13 +244,81 @@ Security aspects are described in detail in the security architecture document.
 
 ## 7. Design Considerations
 
-This section describes the main architectural design decisions and their rationale, including:
+This section explains the main architectural decisions and the rationale behind them, based on course principles such as serverless design, event-driven processing, high availability, and security.
 
-- Why serverless was chosen
-- Why microservices architecture was chosen
-- Scalability and availability considerations
-- Cost considerations (Free Tier)
-- Security considerations (high-level)
+### 7.1 Why Serverless
+
+The system is implemented using serverless services to avoid server management and operational overhead. Serverless also supports:
+- Pay-per-use cost model (OPEX)
+- Automatic scaling under load
+- High availability by design
+- Faster development and deployment
+
+### 7.2 Why Microservices
+
+The backend is decomposed into multiple small services to:
+- Separate responsibilities and reduce complexity
+- Isolate security permissions (least privilege per service)
+- Enable independent scaling and deployment
+- Reduce blast radius in case of failure
+
+### 7.3 Why Event-Driven Flow
+
+The system is naturally event-driven:
+- A user vote is an event that triggers processing steps
+- Workflows allow loose coupling and clearer separation between components
+- Event-driven design improves resilience and scalability
+
+### 7.4 Why Step Functions for Orchestration
+
+Vote submission is implemented as a workflow with multiple steps (validation, persistence, counter update). Step Functions was chosen because it provides:
+- Clear and visual workflow definition
+- Built-in retries and error handling
+- Separation between orchestration logic and business logic
+- Better observability of multi-step execution
+
+### 7.5 Why API Gateway as Entry Point
+
+API Gateway was chosen to expose backend functionality because it provides:
+- Managed HTTPS endpoints
+- Request validation
+- Throttling and rate limiting to reduce abuse
+- Clear separation between public and admin APIs
+
+### 7.6 Why DynamoDB for Storage
+
+DynamoDB is used for poll definitions and aggregated results due to:
+- Fully managed and serverless nature
+- High availability and durability
+- Low-latency reads suitable for real-time dashboards
+- Simple access patterns (get active poll, update counters, read results)
+
+### 7.7 Availability and Reliability Considerations
+
+High availability is achieved through the use of managed services that are inherently redundant. The design avoids single points of failure by relying on:
+- CloudFront for global distribution
+- API Gateway and Lambda for scalable compute
+- DynamoDB for durable storage
+- Workflow retries for transient failures
+
+### 7.8 Cost Considerations (Free Tier)
+
+The architecture is designed to stay within AWS Free Tier by:
+- Using serverless services that scale to zero
+- Minimizing storage usage
+- Keeping workflows and polling frequency efficient
+
+### 7.9 Security Considerations (High-Level)
+
+Security is treated as a core design requirement. The system applies:
+- Least privilege IAM roles per service
+- Separation between public and admin endpoints
+- Request validation and throttling
+- No direct public access to the data store
+- Logging and monitoring for detection and troubleshooting
+
+Detailed threat modeling and mitigations are documented in `docs/security.md`.
+
 
 ---
 
