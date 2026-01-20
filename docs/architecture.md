@@ -145,9 +145,100 @@ Responsibilities:
 
 ## 6. Technology Mapping (AWS Services)
 
-This section maps the logical components to AWS managed services.
+This section describes how each logical component of the system is implemented using AWS managed services.
 
-(To be filled in later)
+The system is built entirely on serverless and fully managed services in order to minimize operational overhead, improve scalability, and increase reliability.
+
+---
+
+### 6.1 Frontend Hosting
+
+- The User Interface and the Admin Interface are hosted as static web applications using:
+  - Amazon S3 for storage
+  - Amazon CloudFront for global content delivery and HTTPS access
+
+This ensures high availability, low latency, and secure access to the frontend.
+
+---
+
+### 6.2 API Layer
+
+- Amazon API Gateway is used as the main entry point for:
+  - Public voting API
+  - Admin management API
+
+API Gateway provides:
+- Request validation
+- Rate limiting and throttling
+- Secure HTTPS endpoints
+- Logical separation between public and admin endpoints
+
+---
+
+### 6.3 Compute Layer (Microservices)
+
+- Each logical backend service is implemented as an independent AWS Lambda function, including:
+  - Poll Management Service
+  - Vote Intake Service
+  - Vote Processing Service
+  - Results Query Service
+
+Using AWS Lambda provides:
+- Automatic scaling
+- Pay-per-use cost model
+- No server management
+- High availability by design
+
+---
+
+### 6.4 Workflow Orchestration
+
+- AWS Step Functions is used to implement the voting workflow orchestration.
+
+The workflow coordinates the following steps:
+1. Validate vote
+2. Persist vote and/or update counters
+3. Finalize processing and return result
+
+Step Functions provides:
+- Visual workflow definition
+- Built-in retry and error handling
+- Clear separation between orchestration and business logic
+
+---
+
+### 6.5 Data Storage
+
+- Amazon DynamoDB is used as the main persistent storage for:
+  - Poll definitions
+  - Aggregated voting results
+
+DynamoDB was chosen because:
+- It is fully managed and serverless
+- It scales automatically
+- It provides high availability and durability by design
+- It fits the access patterns of the system
+
+---
+
+### 6.6 Monitoring and Logging
+
+- Amazon CloudWatch is used for:
+  - Collecting logs from all Lambda functions
+  - Monitoring system metrics (number of votes, errors, latency)
+  - Basic alerting and troubleshooting
+
+---
+
+### 6.7 Security and Access Control
+
+- AWS IAM is used to:
+  - Define least-privilege roles for each Lambda function
+  - Control access between services
+  - Isolate permissions between public and admin components
+
+Security aspects are described in detail in the security architecture document.
+
 
 ---
 
