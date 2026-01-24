@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>This or That</title>
+    <style>
+    body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        background: linear-gradient(135deg, #f3e7ff, #e6d6ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .card {
+        background: white;
+        padding: 50px 60px;
+        border-radius: 24px;
+        box-shadow: 0 10px 40px rgba(120, 80, 200, 0.25);
+        text-align: center;
+        max-width: 500px;
+        width: 90%;
+        transition: all 0.3s ease;
+    }
+
+    h1 {
+        font-size: 32px;
+        margin-bottom: 40px;
+        color: #5a2d82;
+    }
+
+    .buttons {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+    }
+
+    button {
+        font-size: 20px;
+        padding: 16px 36px;
+        border-radius: 14px;
+        border: none;
+        cursor: pointer;
+        background: linear-gradient(135deg, #b983ff, #9b5de5);
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 6px 15px rgba(155, 93, 229, 0.4);
+        transition: all 0.2s ease;
+    }
+
+    button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(155, 93, 229, 0.5);
+    }
+
+    button:active {
+        transform: scale(0.97);
+    }
+    </style>
+
+</head>
+<body>
+
+    <div class="card">
+        <h1 id="question">Loading...</h1>
+
+        <div class="buttons">
+        <button id="btnA">Option A</button>
+        <button id="btnB">Option B</button>
+        </div>
+    </div>
+
+    <script>
+    const API_BASE = "https://b9gzcub1b9.execute-api.eu-north-1.amazonaws.com";
+
+    const WS_URL = "wss://u3wsnkcxnj.execute-api.eu-north-1.amazonaws.com/production";
+    const ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => console.log("WS connected!");
+    ws.onclose = (e) => console.log("WS closed", e.code, e.reason);
+
+
+    ws.onmessage = (event) => {
+        console.log("GOT FROM WEBSOCKET:", event.data);
+
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === "results_update") {
+            console.log("Realtime update:", msg);
+
+        }
+    };
+
+ws.onerror = (err) => {
+    console.error("WebSocket error:", err);
+};
+
+
+    let polls = [];
+    let currentIndex = 0;
+
+    const questionEl = document.getElementById("question");
+    const btnA = document.getElementById("btnA");
+    const btnB = document.getElementById("btnB");
+
+    async function loadPolls() {
+    const res = await fetch(API_BASE + "/polls");
+    polls = await res.json();
+
+    if (polls.length === 0) {
+        questionEl.innerText = "No polls available.";
+        btnA.style.display = "none";
+        btnB.style.display = "none";
+        return;
+    }
+
+    showCurrentPoll();
+    }
+
+    function showCurrentPoll() {
+    if (currentIndex >= polls.length) {
+        questionEl.innerText = "Thanks for playing!";
+        btnA.style.display = "none";
+        btnB.style.display = "none";
+        return;
+    }
+
+    const poll = polls[currentIndex];
+
+    questionEl.innerText = poll.question;
+    btnA.innerText = poll.options[0];
+    btnB.innerText = poll.options[1];
+    }
+
+    async function vote(choiceIndex) {
+    const poll = polls[currentIndex];
+
+    await fetch(
+        API_BASE + `/vote?pollID=${poll.pollID}&choice=${choiceIndex === 0 ? "A" : "B"}`
+    );
+
+    currentIndex++;
+    showCurrentPoll();
+    }
+
+    btnA.onclick = () => vote(0);
+    btnB.onclick = () => vote(1);
+
+    loadPolls();
+    </script>
+
+
+</body>
+</html>
