@@ -71,85 +71,113 @@
         <button id="btnB">Option B</button>
         </div>
     </div>
+<script>
+  const API_BASE = "https://b9gzcub1b9.execute-api.eu-north-1.amazonaws.com";
+  const WS_URL = "wss://u3wsnkcxnj.execute-api.eu-north-1.amazonaws.com/production";
+  const ws = new WebSocket(WS_URL);
 
-    <script>
-    const API_BASE = "https://b9gzcub1b9.execute-api.eu-north-1.amazonaws.com";
+  ws.onopen = () => console.log("User WS connected");
+  ws.onerror = (e) => console.error("User WS error", e);
 
-    const WS_URL = "wss://u3wsnkcxnj.execute-api.eu-north-1.amazonaws.com/production";
-    const ws = new WebSocket(WS_URL);
+  // -------- Identity --------
 
-    ws.onopen = () => console.log("WS connected!");
-    ws.onclose = (e) => console.log("WS closed", e.code, e.reason);
+  if (!localStorage.userID) {
+    localStorage.userID = crypto.randomUUID();
+  }
 
+  function generateGameID() {
+    return "game_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+  }
 
-    ws.onmessage = (event) => {
-        console.log("GOT FROM WEBSOCKET:", event.data);
+  let gameID = localStorage.getItem("gameID");
+  if (!gameID) {
+    gameID = generateGameID();
+    localStorage.setItem("gameID", gameID);
+  }
 
-        const msg = JSON.parse(event.data);
+  console.log("GAME ID:", gameID);
 
-        if (msg.type === "results_update") {
-            console.log("Realtime update:", msg);
+  // -------- State --------
 
-        }
-    };
+  let polls = [];
+  let currentIndex = 0;
 
-ws.onerror = (err) => {
-    console.error("WebSocket error:", err);
-};
+  // -------- DOM --------
 
+  const questionEl = document.getElementById("question");
+  const btnA = document.getElementById("btnA");
+  const btnB = document.getElementById("btnB");
 
-    let polls = [];
-    let currentIndex = 0;
+  // -------- Init --------
 
-    const questionEl = document.getElementById("question");
-    const btnA = document.getElementById("btnA");
-    const btnB = document.getElementById("btnB");
+  init();
 
-    async function loadPolls() {
+  async function init() {
+    await loadPolls();
+    showCurrentPoll();
+  }
+
+  // -------- Data --------
+
+  async function loadPolls() {
     const res = await fetch(API_BASE + "/polls");
     polls = await res.json();
 
-    if (polls.length === 0) {
-        questionEl.innerText = "No polls available.";
-        btnA.style.display = "none";
-        btnB.style.display = "none";
-        return;
+    if (!polls.length) {
+      questionEl.innerText = "No polls available.";
+      btnA.style.display = "none";
+      btnB.style.display = "none";
     }
+  }
 
-    showCurrentPoll();
-    }
+  // -------- UI --------
 
-    function showCurrentPoll() {
+  function showCurrentPoll() {
     if (currentIndex >= polls.length) {
-        questionEl.innerText = "Thanks for playing!";
-        btnA.style.display = "none";
-        btnB.style.display = "none";
-        return;
+      questionEl.innerText = "Thanks for playing!";
+      btnA.style.display = "none";
+      btnB.style.display = "none";
+      return;
     }
 
     const poll = polls[currentIndex];
-
     questionEl.innerText = poll.question;
     btnA.innerText = poll.options[0];
     btnB.innerText = poll.options[1];
-    }
+  }
 
-    async function vote(choiceIndex) {
+  // -------- Voting --------
+
+  async function vote(choiceIndex) {
     const poll = polls[currentIndex];
+    const choice = choiceIndex === 0 ? "A" : "B";
 
-    await fetch(
-        API_BASE + `/vote?pollID=${poll.pollID}&choice=${choiceIndex === 0 ? "A" : "B"}`
-    );
+    // lock buttons
+    btnA.disabled = true;
+    btnB.disabled = true;
 
-    currentIndex++;
-    showCurrentPoll();
+    try {
+      await fetch(
+        `${API_BASE}/vote?gameID=${gameID}&pollID=${poll.pollID}&choice=${choice}&userID=${localStorage.userID}`
+      );
+
+      currentIndex++;
+      showCurrentPoll();
+    } catch (err) {
+      alert("Failed to send vote");
+      console.error(err);
+    } finally {
+      btnA.disabled = false;
+      btnB.disabled = false;
     }
+  }
 
-    btnA.onclick = () => vote(0);
-    btnB.onclick = () => vote(1);
+  // -------- Events --------
 
-    loadPolls();
-    </script>
+  btnA.onclick = () => vote(0);
+  btnB.onclick = () => vote(1);
+</script>
+
 
 
 </body>
