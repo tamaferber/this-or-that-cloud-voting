@@ -3,93 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <title>This or That</title>
-    <style>
+  <style>
     body {
-        margin: 0;
-        min-height: 100vh;
-        font-family: 'Segoe UI', Tahoma, sans-serif;
-        background: linear-gradient(135deg, #f3e7ff, #e6d6ff);
-        display: flex;
-        align-items: center;
-        justify-content: center;
+      margin: 0;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      background: linear-gradient(135deg, #f3e7ff, #e6d6ff);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .card {
-        background: white;
-        padding: 50px 60px;
-        border-radius: 24px;
-        box-shadow: 0 10px 40px rgba(120, 80, 200, 0.25);
-        text-align: center;
-        max-width: 500px;
-        width: 90%;
-        transition: all 0.3s ease;
+      background: white;
+      padding: 50px 60px;
+      border-radius: 24px;
+      box-shadow: 0 10px 40px rgba(120, 80, 200, 0.25);
+      text-align: center;
+      max-width: 500px;
+      width: 90%;
     }
 
     h1 {
-        font-size: 32px;
-        margin-bottom: 40px;
-        color: #5a2d82;
+      font-size: 32px;
+      margin-bottom: 40px;
+      color: #5a2d82;
     }
 
     .buttons {
-        display: flex;
-        gap: 20px;
-        justify-content: center;
+      display: flex;
+      gap: 20px;
+      justify-content: center;
     }
 
     button {
-        font-size: 20px;
-        padding: 16px 36px;
-        border-radius: 14px;
-        border: none;
-        cursor: pointer;
-        background: linear-gradient(135deg, #b983ff, #9b5de5);
-        color: white;
-        font-weight: 600;
-        box-shadow: 0 6px 15px rgba(155, 93, 229, 0.4);
-        transition: all 0.2s ease;
+      font-size: 20px;
+      padding: 16px 36px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, #b983ff, #9b5de5);
+      color: white;
+      font-weight: 600;
+      box-shadow: 0 6px 15px rgba(155, 93, 229, 0.4);
     }
-
-    button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 10px 25px rgba(155, 93, 229, 0.5);
-    }
-
-    button:active {
-        transform: scale(0.97);
-    }
-    </style>
-
+  </style>
 </head>
 <body>
 
-    <div class="card">
-        <h1 id="question">Loading...</h1>
+<div class="card">
+  <h1 id="question">Loading...</h1>
+  <div class="buttons">
+    <button id="btnA">Option A</button>
+    <button id="btnB">Option B</button>
+  </div>
+</div>
 
-        <div class="buttons">
-        <button id="btnA">Option A</button>
-        <button id="btnB">Option B</button>
-        </div>
-    </div>
 <script>
   const API_BASE = "https://b9gzcub1b9.execute-api.eu-north-1.amazonaws.com";
   const WS_URL = "wss://u3wsnkcxnj.execute-api.eu-north-1.amazonaws.com/production";
-  const ws = new WebSocket(WS_URL);
 
-  ws.onopen = () => console.log("User WS connected");
-  ws.onerror = (e) => console.error("User WS error", e);
+  console.log("SCRIPT VERSION WITH TOKEN LOADED");
 
-  // -------- Identity --------
+  // ================== TOKEN ==================
 
-  if (!localStorage.userID) {
-    localStorage.userID = crypto.randomUUID();
+  async function ensureToken() {
+    if (!localStorage.token) {
+      const res = await fetch(API_BASE + "/join", { method: "POST" });
+      const data = await res.json();
+      localStorage.token = data.token;
+      localStorage.userId = data.userId;
+      console.log("New token created");
+    } else {
+      console.log("Token already exists");
+    }
   }
 
+  // ================== APP START ==================
+
+  ensureToken().then(startApp);
+
+  function startApp() {
+
+  // -------- Game identity --------
   function generateGameID() {
     return "game_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
   }
 
-  let gameID = localStorage.getItem("gameID");
+  const urlGameID = new URLSearchParams(window.location.search).get("gameID");
+  let gameID = urlGameID || localStorage.getItem("gameID");
   if (!gameID) {
     gameID = generateGameID();
     localStorage.setItem("gameID", gameID);
@@ -97,88 +99,106 @@
 
   console.log("GAME ID:", gameID);
 
-  // -------- State --------
 
-  let polls = [];
-  let currentIndex = 0;
+  let userID = localStorage.getItem("userID");
 
-  // -------- DOM --------
-
-  const questionEl = document.getElementById("question");
-  const btnA = document.getElementById("btnA");
-  const btnB = document.getElementById("btnB");
-
-  // -------- Init --------
-
-  init();
-
-  async function init() {
-    await loadPolls();
-    showCurrentPoll();
+  if (!userID) {
+    userID = "user_" + Math.random().toString(36).slice(2);
+    localStorage.setItem("userID", userID);
   }
 
-  // -------- Data --------
+  console.log("USER ID =", userID);
 
-  async function loadPolls() {
-    const res = await fetch(API_BASE + "/polls");
-    polls = await res.json();
 
-    if (!polls.length) {
-      questionEl.innerText = "No polls available.";
-      btnA.style.display = "none";
-      btnB.style.display = "none";
-    }
-  }
+  // -------- WebSocket --------
+  ws = new WebSocket(`${WS_URL}?gameID=${gameID}`);
+  ws.onopen = () => console.log("User WS connected");
+  ws.onerror = (e) => console.error("User WS error", e);
 
-  // -------- UI --------
 
-  function showCurrentPoll() {
-    if (currentIndex >= polls.length) {
-      questionEl.innerText = "Thanks for playing!";
-      btnA.style.display = "none";
-      btnB.style.display = "none";
-      return;
-    }
+    // -------- State --------
+    let polls = [];
+    let currentIndex = 0;
 
-    const poll = polls[currentIndex];
-    questionEl.innerText = poll.question;
-    btnA.innerText = poll.options[0];
-    btnB.innerText = poll.options[1];
-  }
+    // -------- DOM --------
+    const questionEl = document.getElementById("question");
+    const btnA = document.getElementById("btnA");
+    const btnB = document.getElementById("btnB");
 
-  // -------- Voting --------
+    // -------- Init --------
+    init();
 
-  async function vote(choiceIndex) {
-    const poll = polls[currentIndex];
-    const choice = choiceIndex === 0 ? "A" : "B";
-
-    // lock buttons
-    btnA.disabled = true;
-    btnB.disabled = true;
-
-    try {
-      await fetch(
-        `${API_BASE}/vote?gameID=${gameID}&pollID=${poll.pollID}&choice=${choice}&userID=${localStorage.userID}`
-      );
-
-      currentIndex++;
+    async function init() {
+      await loadPolls();
       showCurrentPoll();
-    } catch (err) {
-      alert("Failed to send vote");
-      console.error(err);
-    } finally {
-      btnA.disabled = false;
-      btnB.disabled = false;
     }
+
+    // -------- Data --------
+    async function loadPolls() {
+      const res = await fetch(API_BASE + "/polls");
+      polls = await res.json();
+
+      if (!polls.length) {
+        questionEl.innerText = "No polls available.";
+        btnA.style.display = "none";
+        btnB.style.display = "none";
+      }
+    }
+
+    // -------- UI --------
+    function showCurrentPoll() {
+      if (currentIndex >= polls.length) {
+        questionEl.innerText = "Thanks for playing!";
+        btnA.style.display = "none";
+        btnB.style.display = "none";
+        return;
+      }
+
+      const poll = polls[currentIndex];
+      questionEl.innerText = poll.question;
+      btnA.innerText = poll.options[0];
+      btnB.innerText = poll.options[1];
+    }
+
+    // -------- Voting --------
+    async function vote(choiceIndex) {
+      const poll = polls[currentIndex];
+      const choice = choiceIndex === 0 ? "A" : "B";
+
+      btnA.disabled = true;
+      btnB.disabled = true;
+
+      try {
+        await fetch(`${API_BASE}/vote`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + localStorage.token
+          },
+          body: JSON.stringify({
+            gameID: gameID,
+            pollID: poll.pollID,
+            choice: choice,
+            userID: userID
+          })
+        });
+
+
+        currentIndex++;
+        showCurrentPoll();
+      } catch (err) {
+        alert("Failed to send vote");
+        console.error(err);
+      } finally {
+        btnA.disabled = false;
+        btnB.disabled = false;
+      }
+    }
+
+    btnA.onclick = () => vote(0);
+    btnB.onclick = () => vote(1);
   }
-
-  // -------- Events --------
-
-  btnA.onclick = () => vote(0);
-  btnB.onclick = () => vote(1);
 </script>
-
-
 
 </body>
 </html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Start Game</title>
+
+<style>
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, sans-serif;
+  background: linear-gradient(135deg, #f3e7ff, #e6d6ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card {
+  background: white;
+  padding: 50px 60px;
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(120, 80, 200, 0.25);
+  text-align: center;
+  width: 420px;
+}
+
+h1 {
+  font-size: 26px;
+  margin-bottom: 20px;
+  color: #5a2d82;
+}
+
+.main-btn {
+  font-size: 18px;
+  padding: 14px 30px;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, #b983ff, #9b5de5);
+  color: white;
+  font-weight: 700;
+}
+
+.secondary-btn {
+  margin-top: 18px;
+  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 12px;
+  border: 2px solid #b983ff;
+  background: white;
+  color: #7a3db8;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.link-box {
+  margin-top: 20px;
+  padding: 14px;
+  background: #f5f0ff;
+  border-radius: 12px;
+  word-break: break-all;
+  font-size: 14px;
+}
+
+.qr {
+  margin-top: 20px;
+}
+
+</style>
+</head>
+<body>
+
+<div class="card">
+  <!-- <h1>Game session</h1> -->
+
+  <div id="linkBox" class="link-box"></div>
+
+  <div class="qr">
+    <div style="margin-bottom:10px;color:#5a2d82;font-weight:600;">Scan to join</div>
+    <img id="qrImg" />
+  </div>
+
+  <div style="margin-top:30px;">
+    <button id="resultsBtn" class="main-btn">View Live Results</button>
+  </div>
+
+  <div>
+    <button id="newGameBtn" class="secondary-btn">Create new game session</button>
+  </div>
+</div>
+
+<script>
+const linkBox = document.getElementById("linkBox");
+const qrImg = document.getElementById("qrImg");
+const resultsBtn = document.getElementById("resultsBtn");
+const newGameBtn = document.getElementById("newGameBtn");
+
+let currentGameID = null;
+
+function generateGame() {
+  currentGameID = "game_" + Date.now() + "_" + Math.floor(Math.random() * 100000);
+  localStorage.setItem("gameID", currentGameID);
+
+  const joinUrl = `${location.origin}/index.html?gameID=${currentGameID}`;
+  linkBox.innerText = joinUrl;
+
+  const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" + encodeURIComponent(joinUrl);
+  qrImg.src = qrUrl;
+}
+
+// first load
+generateGame();
+
+resultsBtn.onclick = () => {
+  window.location.href = `/admin.html?gameID=${currentGameID}`;
+};
+
+newGameBtn.onclick = () => {
+  generateGame();
+};
+</script>
+
+</body>
+</html>

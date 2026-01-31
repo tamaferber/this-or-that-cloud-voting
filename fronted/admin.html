@@ -106,6 +106,8 @@ const WS_URL = "wss://u3wsnkcxnj.execute-api.eu-north-1.amazonaws.com/production
 let polls = [];
 let results = {}; // results[pollID] = { A, B }
 let currentIndex = 0;
+let gameID = null;
+
 
 // DOM
 const questionEl = document.getElementById("question");
@@ -130,7 +132,7 @@ async function loadPolls() {
   polls = await res.json();
 
   const urlGameID = new URLSearchParams(window.location.search).get("gameID");
-  const gameID = urlGameID || localStorage.getItem("gameID");
+  gameID = urlGameID || localStorage.getItem("gameID");
   console.log("ADMIN gameID =", gameID);
 
   if (!polls.length) {
@@ -156,6 +158,8 @@ function showPoll(index) {
 }
 
 function drawChart(pollID) {
+  console.log("DRAW CHART CALLED FOR:", pollID, "DATA =", results[pollID]);
+
   const data = results[pollID] || { A: 0, B: 0 };
   const total = data.A + data.B || 1;
 
@@ -183,25 +187,34 @@ document.getElementById("nextBtn").onclick = () => {
 // -------- WebSocket --------
 
 function connectWS() {
-  const ws = new WebSocket(WS_URL);
-
+  // const ws = new WebSocket(WS_URL);
+  ws = new WebSocket(`${WS_URL}?gameID=${gameID}`);
   ws.onopen = () => console.log("Admin WS connected");
 
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
 
     if (msg.type === "results_update") {
+
+      if (msg.gameID !== gameID) {
+        console.log("Ignoring update from other game:", msg.gameID);
+        return;
+      }
+
       results[msg.pollID] = {
         A: msg.countA,
         B: msg.countB
       };
 
-      // update UI only if this poll is shown
-      if (polls[currentIndex]?.pollID === msg.pollID) {
-        drawChart(msg.pollID);
-      }
+      // if (polls[currentIndex]?.pollID === msg.pollID) {
+      //   drawChart(msg.pollID);
+      // }
+
+      drawChart(polls[currentIndex].pollID);
+
       console.log("WS MESSAGE:", event.data);
     }
+
   };
 
   ws.onerror = (e) => console.error("WS error", e);
